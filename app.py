@@ -498,7 +498,6 @@ st.divider()
 # =========================================================
 # PREDICTION
 # =========================================================
-
 st.header("3. Robot Action Prediction")
 
 
@@ -544,15 +543,23 @@ if st.button(
                 state
             )
 
-        save_prediction(
-            image_name,
-            prediction,
-            ground_truth,
-            error,
-            mae,
-            dataset_split,
-            dataset_index
-        )
+            ground_truth = actions[dataset_index]
+
+            error = np.abs(
+                prediction - ground_truth
+            )
+
+            mae = float(np.mean(error))
+
+            save_prediction(
+                image_name=image_name,
+                prediction=prediction,
+                ground_truth=ground_truth,
+                error=error,
+                mae=mae,
+                dataset_split=dataset_split,
+                dataset_index=dataset_index
+            )
 
         st.session_state[
             "latest_prediction"
