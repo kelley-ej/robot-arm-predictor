@@ -84,18 +84,22 @@ DATA_DIR = "demo_data"
 # ---------------------------------------------------------
 
 def initialize_database():
-    with sqlite3.connect(DB_PATH) as conn:
+    conn = sqlite3.connect(DB_FILE)
         conn.execute("""
             CREATE TABLE IF NOT EXISTS predictions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                timestamp TEXT,
                 image_name TEXT,
-                actions TEXT,
-                ground_truth TEXT,
+                prediction TEXT
+                ground_truth TEXT
+                error TEXT
+                mae TEXT,
                 dataset_split TEXT,
-                dataset_index INTEGER
+                dataset_index INTEGER,
+                timestamp TEXT
             )
         """)
+    conn.commit()
+    conn.close()
 
 
 def save_prediction(
