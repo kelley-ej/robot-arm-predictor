@@ -1,10 +1,9 @@
 import torch
 import torchvision
 import numpy as np
+from pathlib import Path
 
-
-CHECKPOINT = "/home/kelleyej/13/robot-arm-web/model/robot_finetuned.pth"
-
+CHECKPOINT = Path(__file__).resolve().parent / "robot_finetuned.pth"
 DEVICE = torch.device("cpu")
 
 
