@@ -153,7 +153,7 @@ def save_prediction(
                 str(ground_truth.tolist()),
                 str(error.tolist()),
                 float(mae),
-                dataset_split,
+                str(dataset_split),
                 int(dataset_index),
                 datetime.now().isoformat()
             )
@@ -548,6 +548,8 @@ if st.button(
             image_name,
             prediction,
             ground_truth,
+            error,
+            mae,
             dataset_split,
             dataset_index
         )
