@@ -748,7 +748,7 @@ if history:
             if ground_truth_json:
 
                 st.write(
-                    "Ground Truth:"
+                    "User Action:"
                 )
 
                 st.json(
