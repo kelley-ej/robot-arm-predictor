@@ -75,7 +75,7 @@ button {
 # Paths
 # ---------------------------------------------------------
 
-DB_FILE = "predictions.db"
+DB_PATH = "predictions.db"
 DATA_DIR = "demo_data"
 
 
@@ -84,7 +84,7 @@ DATA_DIR = "demo_data"
 # ---------------------------------------------------------
 
 def initialize_database():
-    conn = sqlite3.connect(DB_FILE)
+    conn = sqlite3.connect(DB_PATH)
     
     
     conn.execute("""
