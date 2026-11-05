@@ -4,16 +4,17 @@ import json
 from datetime import datetime
 import numpy as np
 from PIL import Image
+import pandas as pd
 
 from model.predict import predict_robot_action
 
 
-# =========================================================
-# PAGE SETUP
-# =========================================================
+# ---------------------------------------------------------
+# Page setup
+# ---------------------------------------------------------
 
 st.set_page_config(
-    page_title="Robot Arm AI",
+    page_title="Robot Arm Predictor",
     page_icon="🤖",
     layout="wide"
 )
@@ -70,56 +71,63 @@ button {
 """, unsafe_allow_html=True)
 
 
-# =========================================================
-# SETTINGS
-# =========================================================
+# ---------------------------------------------------------
+# Paths
+# ---------------------------------------------------------
 
 DB_PATH = "predictions.db"
 DATA_DIR = "demo_data"
 
 
-# =========================================================
-# DATABASE
-# =========================================================
+# ---------------------------------------------------------
+# Database
+# ---------------------------------------------------------
 
 def initialize_database():
-
     with sqlite3.connect(DB_PATH) as conn:
-
         conn.execute("""
             CREATE TABLE IF NOT EXISTS predictions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 timestamp TEXT,
                 image_name TEXT,
-                actions TEXT
+                actions TEXT,
+                ground_truth TEXT,
+                dataset_split TEXT,
+                dataset_index INTEGER
             )
         """)
 
 
-def save_prediction(image_name, actions):
-
+def save_prediction(
+    image_name,
+    prediction,
+    ground_truth=None,
+    dataset_split=None,
+    dataset_index=None
+):
     with sqlite3.connect(DB_PATH) as conn:
-
         conn.execute(
             """
             INSERT INTO predictions
-            (timestamp, image_name, actions)
-            VALUES (?, ?, ?)
+            (timestamp, image_name, actions, ground_truth,
+             dataset_split, dataset_index)
+            VALUES (?, ?, ?, ?, ?, ?)
             """,
             (
-                datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S"
-                ),
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 image_name,
-                json.dumps(actions.tolist())
+                json.dumps(prediction.tolist()),
+                json.dumps(
+                    ground_truth.tolist()
+                ) if ground_truth is not None else None,
+                dataset_split,
+                dataset_index
             )
         )
 
 
 def get_history():
-
     with sqlite3.connect(DB_PATH) as conn:
-
         return conn.execute(
             """
             SELECT *
@@ -132,34 +140,46 @@ def get_history():
 initialize_database()
 
 
-# =========================================================
-# LOAD DEMO DATASET
-# =========================================================
+# ---------------------------------------------------------
+# Dataset loading
+# ---------------------------------------------------------
 
 @st.cache_resource
-def load_demo_dataset():
+def load_dataset(split):
+
+    split_dir = f"{DATA_DIR}/{split}"
 
     top_images = np.load(
-        f"{DATA_DIR}/image.npy",
+        f"{split_dir}/image.npy",
         mmap_mode="r"
     )
 
     wrist_images = np.load(
-        f"{DATA_DIR}/image_wrist.npy",
+        f"{split_dir}/image_wrist.npy",
         mmap_mode="r"
     )
 
     states = np.load(
-        f"{DATA_DIR}/states.npy",
+        f"{split_dir}/states.npy",
         mmap_mode="r"
     )
 
-    return top_images, wrist_images, states
+    actions = np.load(
+        f"{split_dir}/actions.npy",
+        mmap_mode="r"
+    )
+
+    return (
+        top_images,
+        wrist_images,
+        states,
+        actions
+    )
 
 
-# =========================================================
-# TITLE
-# =========================================================
+# ---------------------------------------------------------
+# Header
+# ---------------------------------------------------------
 
 st.title("🤖 Vision-Based Robot Arm AI")
 
@@ -170,9 +190,9 @@ st.write(
 st.divider()
 
 
-# =========================================================
-# INPUT MODE
-# =========================================================
+# ---------------------------------------------------------
+# Input method
+# ---------------------------------------------------------
 
 st.header("1. Select Input Method")
 
@@ -186,14 +206,15 @@ input_mode = st.radio(
 )
 
 
-# =========================================================
-# VARIABLES
-# =========================================================
-
 top_image = None
 wrist_image = None
 state = None
+ground_truth = None
+
 image_name = "uploaded_image"
+
+dataset_split = None
+dataset_index = None
 
 
 # =========================================================
@@ -204,11 +225,24 @@ if input_mode == "Dataset Sample":
 
     st.subheader("Dataset Sample")
 
+    dataset_split = st.selectbox(
+        "Dataset split",
+        [
+            "train",
+            "val",
+            "test"
+        ],
+        format_func=lambda x: x.capitalize()
+    )
+
     try:
 
-        top_images, wrist_images, states = (
-            load_demo_dataset()
-        )
+        (
+            top_images,
+            wrist_images,
+            states,
+            actions
+        ) = load_dataset(dataset_split)
 
         sample_number = st.number_input(
             "Dataset sample",
@@ -218,22 +252,28 @@ if input_mode == "Dataset Sample":
             step=1
         )
 
-        top_image = top_images[sample_number]
-        wrist_image = wrist_images[sample_number]
-        state = states[sample_number]
+        dataset_index = int(sample_number)
+
+        top_image = top_images[dataset_index]
+        wrist_image = wrist_images[dataset_index]
+        state = states[dataset_index]
+
+        # Ground truth from actions.npy
+        ground_truth = actions[dataset_index]
 
         image_name = (
-            f"dataset_sample_{sample_number}"
+            f"{dataset_split}_sample_{dataset_index}"
         )
 
         st.success(
-            f"Loaded dataset sample {sample_number}"
+            f"Loaded {dataset_split} sample "
+            f"{dataset_index}"
         )
 
     except Exception as e:
 
         st.error(
-            "Could not load demo dataset."
+            f"Could not load {dataset_split} dataset."
         )
 
         st.exception(e)
@@ -264,9 +304,8 @@ else:
         if top_file:
 
             top_image = np.array(
-                Image.open(
-                    top_file
-                ).convert("RGB")
+                Image.open(top_file)
+                .convert("RGB")
             )
 
             st.image(
@@ -290,9 +329,8 @@ else:
         if wrist_file:
 
             wrist_image = np.array(
-                Image.open(
-                    wrist_file
-                ).convert("RGB")
+                Image.open(wrist_file)
+                .convert("RGB")
             )
 
             st.image(
@@ -309,7 +347,7 @@ else:
 
 
 # =========================================================
-# DISPLAY DATASET IMAGES
+# SHOW DATASET IMAGES
 # =========================================================
 
 if (
@@ -338,13 +376,15 @@ if (
         )
 
 
+st.divider()
+
+
 # =========================================================
 # ROBOT STATE
 # =========================================================
 
-st.divider()
-
 st.header("2. Robot State")
+
 
 state_names = [
     "q1",
@@ -364,10 +404,6 @@ state_names = [
     "gripper_position"
 ]
 
-
-# ---------------------------------------------------------
-# Dataset state
-# ---------------------------------------------------------
 
 if (
     input_mode == "Dataset Sample"
@@ -389,10 +425,6 @@ if (
                 f"{state[i]:.6f}"
             )
 
-
-# ---------------------------------------------------------
-# Manual state
-# ---------------------------------------------------------
 
 elif input_mode == "Upload Images":
 
@@ -427,11 +459,12 @@ elif input_mode == "Upload Images":
     )
 
 
+st.divider()
+
+
 # =========================================================
 # PREDICTION
 # =========================================================
-
-st.divider()
 
 st.header("3. Robot Action Prediction")
 
@@ -472,22 +505,35 @@ if st.button(
             "Running robot model..."
         ):
 
-            prediction = (
-                predict_robot_action(
-                    top_image,
-                    wrist_image,
-                    state
-                )
+            prediction = predict_robot_action(
+                top_image,
+                wrist_image,
+                state
             )
 
         save_prediction(
             image_name,
-            prediction
+            prediction,
+            ground_truth,
+            dataset_split,
+            dataset_index
         )
 
         st.session_state[
             "latest_prediction"
         ] = prediction
+
+        st.session_state[
+            "latest_ground_truth"
+        ] = ground_truth
+
+        st.session_state[
+            "latest_split"
+        ] = dataset_split
+
+        st.session_state[
+            "latest_index"
+        ] = dataset_index
 
         st.success(
             "Prediction generated successfully!"
@@ -495,18 +541,22 @@ if st.button(
 
 
 # =========================================================
-# DISPLAY PREDICTION
+# PREDICTION RESULTS
 # =========================================================
 
 if "latest_prediction" in st.session_state:
 
+    prediction = (
+        st.session_state["latest_prediction"]
+    )
+
+    ground_truth = (
+        st.session_state["latest_ground_truth"]
+    )
+
     st.subheader(
         "Predicted Actuator Commands"
     )
-
-    prediction = st.session_state[
-        "latest_prediction"
-    ]
 
     action_cols = st.columns(7)
 
@@ -519,18 +569,82 @@ if "latest_prediction" in st.session_state:
                 f"{prediction[i]:.5f}"
             )
 
-    st.subheader("Raw Prediction")
 
-    st.json(
-        prediction.tolist()
-    )
+    # -----------------------------------------------------
+    # Ground truth comparison
+    # -----------------------------------------------------
+
+    if ground_truth is not None:
+
+        st.subheader(
+            "Predicted vs. Ground Truth"
+        )
+
+        error = np.abs(
+            prediction - ground_truth
+        )
+
+        mae = np.mean(error)
+
+        comparison_cols = st.columns(4)
+
+        with comparison_cols[0]:
+
+            st.metric(
+                "Mean Absolute Error",
+                f"{mae:.6f}"
+            )
+
+        with comparison_cols[1]:
+
+            st.metric(
+                "Max Error",
+                f"{np.max(error):.6f}"
+            )
+
+        with comparison_cols[2]:
+
+            st.metric(
+                "Dataset",
+                st.session_state["latest_split"]
+            )
+
+        with comparison_cols[3]:
+
+            st.metric(
+                "Sample",
+                st.session_state["latest_index"]
+            )
 
 
-# =========================================================
-# SIMULATION
-# =========================================================
+        st.subheader("Prediction vs Ground Truth")
+        
+        col1,col2,col3 = st.columns(3)
+
+        with col1:
+            st.markdown("### Predicted")
+            for i, value in enumerate(prediction):
+                st.write(f"**Action {i + 1}:** {float(value):.4f}")
+
+        with col2:
+            st.markdown("### Ground Truth")
+            for i, value in enumerate(ground_truth):
+                st.write(f"{float(value):.4f}")
+
+        with col3:
+            st.markdown("### Absolute Error")
+            for i, value in enumerate(error):
+                st.write(f"{float(value):.4f}")
+
+        st.metric("Mean Absolute Error", f"{mae:.4f}")
+
 
 st.divider()
+
+
+# =========================================================
+# ROBOT SIMULATION
+# =========================================================
 
 st.header("4. Robot Simulation")
 
@@ -539,25 +653,34 @@ st.info(
 )
 
 
+st.divider()
+
+
 # =========================================================
 # HISTORY
 # =========================================================
-
-st.divider()
 
 st.header("5. Prediction History")
 
 history = get_history()
 
-
 if history:
 
     for record in history:
 
-        prediction_id, timestamp, image_name, actions = record
+        (
+            prediction_id,
+            timestamp,
+            image_name,
+            actions_json,
+            ground_truth_json,
+            split,
+            sample_index
+        ) = record
 
         with st.expander(
-            f"Prediction #{prediction_id} - {timestamp}"
+            f"Prediction #{prediction_id} - "
+            f"{timestamp}"
         ):
 
             st.write(
@@ -565,9 +688,30 @@ if history:
                 image_name
             )
 
-            st.json(
-                json.loads(actions)
+            if split:
+
+                st.write(
+                    f"Dataset: {split}, "
+                    f"Sample: {sample_index}"
+                )
+
+            st.write(
+                "Prediction:"
             )
+
+            st.json(
+                json.loads(actions_json)
+            )
+
+            if ground_truth_json:
+
+                st.write(
+                    "Ground Truth:"
+                )
+
+                st.json(
+                    json.loads(ground_truth_json)
+                )
 
 else:
 
