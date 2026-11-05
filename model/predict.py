@@ -6,6 +6,9 @@ from pathlib import Path
 CHECKPOINT = Path(__file__).resolve().parent / "robot_finetuned.pth"
 DEVICE = torch.device("cpu")
 
+print("CHECKPOINT:", CHECKPOINT)
+print("CHECKPOINT EXISTS:", CHECKPOINT.exists())
+
 
 def load_feature_extractor(checkpoint, prefix):
     """
