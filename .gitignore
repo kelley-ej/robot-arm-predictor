@@ -1,0 +1,5 @@
+bc_data/
+.venv/
+__pycache__/
+*.pyc
+predictions.db
