@@ -619,7 +619,7 @@ if "latest_prediction" in st.session_state:
     if ground_truth is not None:
 
         st.subheader(
-            "Predicted vs. Ground Truth"
+            "Predicted vs. User Action"
         )
 
         error = np.abs(
@@ -659,7 +659,7 @@ if "latest_prediction" in st.session_state:
             )
 
 
-        st.subheader("Prediction vs Ground Truth")
+        st.subheader("Prediction vs User Action")
         
         col1,col2,col3 = st.columns(3)
 
@@ -669,7 +669,7 @@ if "latest_prediction" in st.session_state:
                 st.write(f"**Action {i + 1}:** {float(value):.4f}")
 
         with col2:
-            st.markdown("### Ground Truth")
+            st.markdown("### User Action")
             for i, value in enumerate(ground_truth):
                 st.write(f"{float(value):.4f}")
 
