@@ -84,53 +84,80 @@ DATA_DIR = "demo_data"
 # ---------------------------------------------------------
 
 def initialize_database():
-    conn = sqlite3.connect(DB_PATH)
-    
-    
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS predictions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        image_name TEXT,
-        prediction TEXT
-        ground_truth TEXT
-        error TEXT
-        mae TEXT,
-        dataset_split TEXT,
-        dataset_index INTEGER,
-        timestamp TEXT
-       )
+    with sqlite3.connect(DB_PATH) as conn:
+
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS predictions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                image_name TEXT,
+                prediction TEXT,
+                ground_truth TEXT,
+                error TEXT,
+                mae REAL,
+                dataset_split TEXT,
+                dataset_index INTEGER,
+                timestamp TEXT
+            )
         """)
-    conn.commit()
-    conn.close()
+
+        existing_columns = {
+            row[1]
+            for row in conn.execute("PRAGMA table_info(predictions)")
+        }
+
+        required_columns = {
+            "image_name": "TEXT",
+            "prediction": "TEXT",
+            "ground_truth": "TEXT",
+            "error": "TEXT",
+            "mae": "REAL",
+            "dataset_split": "TEXT",
+            "dataset_index": "INTEGER",
+            "timestamp": "TEXT",
+        }
+
+        for column, column_type in required_columns.items():
+            if column not in existing_columns:
+                conn.execute(
+                    f"ALTER TABLE predictions ADD COLUMN {column} {column_type}"
+                )
 
 
 def save_prediction(
     image_name,
     prediction,
-    ground_truth=None,
-    dataset_split=None,
-    dataset_index=None
+    ground_truth,
+    error,
+    mae,
+    dataset_split,
+    dataset_index
 ):
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute(
             """
-            INSERT INTO predictions
-            (timestamp, image_name, actions, ground_truth,
-             dataset_split, dataset_index)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO predictions (
+                image_name,
+                prediction,
+                ground_truth,
+                error,
+                mae,
+                dataset_split,
+                dataset_index,
+                timestamp
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
-                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 image_name,
-                json.dumps(prediction.tolist()),
-                json.dumps(
-                    ground_truth.tolist()
-                ) if ground_truth is not None else None,
+                str(prediction.tolist()),
+                str(ground_truth.tolist()),
+                str(error.tolist()),
+                float(mae),
                 dataset_split,
-                dataset_index
+                int(dataset_index),
+                datetime.now().isoformat()
             )
         )
-
 
 def get_history():
     with sqlite3.connect(DB_PATH) as conn:
