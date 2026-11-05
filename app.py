@@ -75,7 +75,7 @@ button {
 # Paths
 # ---------------------------------------------------------
 
-DB_PATH = "predictions.db"
+DB_FILE = "predictions.db"
 DATA_DIR = "demo_data"
 
 
