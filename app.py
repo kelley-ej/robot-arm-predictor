@@ -152,7 +152,7 @@ def save_prediction(
                 str(prediction.tolist()),
                 str(ground_truth.tolist()),
                 str(error.tolist()),
-                float(mae),
+                float(mse),
                 str(dataset_split),
                 int(dataset_index),
                 datetime.now().isoformat()
