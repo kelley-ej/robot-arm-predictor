@@ -93,7 +93,7 @@ def initialize_database():
                 prediction TEXT,
                 ground_truth TEXT,
                 error TEXT,
-                mae REAL,
+                mse REAL,
                 dataset_split TEXT,
                 dataset_index INTEGER,
                 timestamp TEXT
@@ -110,7 +110,7 @@ def initialize_database():
             "prediction": "TEXT",
             "ground_truth": "TEXT",
             "error": "TEXT",
-            "mae": "REAL",
+            "mse": "REAL",
             "dataset_split": "TEXT",
             "dataset_index": "INTEGER",
             "timestamp": "TEXT",
@@ -128,7 +128,7 @@ def save_prediction(
     prediction,
     ground_truth,
     error,
-    mae,
+    mse,
     dataset_split,
     dataset_index
 ):
@@ -140,7 +140,7 @@ def save_prediction(
                 prediction,
                 ground_truth,
                 error,
-                mae,
+                mse,
                 dataset_split,
                 dataset_index,
                 timestamp
@@ -549,14 +549,14 @@ if st.button(
                 prediction - ground_truth
             )
 
-            mae = float(np.mean(error))
+            mse = float(np.mean(error))
 
             save_prediction(
                 image_name=image_name,
                 prediction=prediction,
                 ground_truth=ground_truth,
                 error=error,
-                mae=mae,
+                mse=mse,
                 dataset_split=dataset_split,
                 dataset_index=dataset_index
             )
@@ -626,7 +626,7 @@ if "latest_prediction" in st.session_state:
             (prediction - ground_truth)
         )
 
-        mae = np.mean(error**2)
+        mse = np.mean(error**2)
 
         comparison_cols = st.columns(4)
 
@@ -634,7 +634,7 @@ if "latest_prediction" in st.session_state:
 
             st.metric(
                 "Mean Squared Error",
-                f"{mae:.6f}"
+                f"{mse:.6f}"
             )
 
         with comparison_cols[1]:
@@ -678,7 +678,7 @@ if "latest_prediction" in st.session_state:
             for i, value in enumerate(error):
                 st.write(f"{float(value):.4f}")
 
-        st.metric("Mean Squared Error", f"{mae:.4f}")
+        st.metric("Mean Squared Error", f"{mse:.4f}")
 
 
 st.divider()
