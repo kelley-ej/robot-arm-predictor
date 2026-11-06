@@ -623,7 +623,7 @@ if "latest_prediction" in st.session_state:
         )
 
         error = np.abs(
-            prediction - ground_truth
+            (prediction - ground_truth)^2
         )
 
         mae = np.mean(error)
@@ -633,7 +633,7 @@ if "latest_prediction" in st.session_state:
         with comparison_cols[0]:
 
             st.metric(
-                "Mean Absolute Error",
+                "Mean Squared Error",
                 f"{mae:.6f}"
             )
 
@@ -678,7 +678,7 @@ if "latest_prediction" in st.session_state:
             for i, value in enumerate(error):
                 st.write(f"{float(value):.4f}")
 
-        st.metric("Mean Absolute Error", f"{mae:.4f}")
+        st.metric("Mean Squared Error", f"{mae:.4f}")
 
 
 st.divider()
