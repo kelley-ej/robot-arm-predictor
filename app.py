@@ -623,7 +623,7 @@ if "latest_prediction" in st.session_state:
         )
 
         error = np.abs(
-            (prediction - ground_truth)^2
+            (prediction - ground_truth)**2
         )
 
         mae = np.mean(error)
