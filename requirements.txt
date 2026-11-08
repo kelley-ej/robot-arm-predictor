@@ -2,4 +2,8 @@ streamlit
 torch
 torchvision
 numpy
-Pillow
+pybullet
+scipy
+imageio
+matplotlib
+pillow
