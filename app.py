@@ -1,10 +1,6 @@
 import streamlit as st
-import sqlite3
-import json
-from datetime import datetime
 import numpy as np
 from PIL import Image
-import pandas as pd
 
 from model.predict import predict_robot_action
 
@@ -75,102 +71,7 @@ button {
 # Paths
 # ---------------------------------------------------------
 
-DB_PATH = "predictions.db"
 DATA_DIR = "demo_data"
-
-
-# ---------------------------------------------------------
-# Database
-# ---------------------------------------------------------
-
-def initialize_database():
-    with sqlite3.connect(DB_PATH) as conn:
-
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS predictions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                image_name TEXT,
-                prediction TEXT,
-                ground_truth TEXT,
-                error TEXT,
-                mse REAL,
-                dataset_split TEXT,
-                dataset_index INTEGER,
-                timestamp TEXT
-            )
-        """)
-
-        existing_columns = {
-            row[1]
-            for row in conn.execute("PRAGMA table_info(predictions)")
-        }
-
-        required_columns = {
-            "image_name": "TEXT",
-            "prediction": "TEXT",
-            "ground_truth": "TEXT",
-            "error": "TEXT",
-            "mse": "REAL",
-            "dataset_split": "TEXT",
-            "dataset_index": "INTEGER",
-            "timestamp": "TEXT",
-        }
-
-        for column, column_type in required_columns.items():
-            if column not in existing_columns:
-                conn.execute(
-                    f"ALTER TABLE predictions ADD COLUMN {column} {column_type}"
-                )
-
-
-def save_prediction(
-    image_name,
-    prediction,
-    ground_truth,
-    error,
-    mse,
-    dataset_split,
-    dataset_index
-):
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.execute(
-            """
-            INSERT INTO predictions (
-                image_name,
-                prediction,
-                ground_truth,
-                error,
-                mse,
-                dataset_split,
-                dataset_index,
-                timestamp
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                image_name,
-                str(prediction.tolist()),
-                str(ground_truth.tolist()),
-                str(error.tolist()),
-                float(mse),
-                str(dataset_split),
-                int(dataset_index),
-                datetime.now().isoformat()
-            )
-        )
-
-def get_history():
-    with sqlite3.connect(DB_PATH) as conn:
-        return conn.execute(
-            """
-            SELECT *
-            FROM predictions
-            ORDER BY id DESC
-            """
-        ).fetchall()
-
-
-initialize_database()
 
 
 # ---------------------------------------------------------
@@ -214,10 +115,10 @@ def load_dataset(split):
 # Header
 # ---------------------------------------------------------
 
-st.title("🤖 Vision-Based Robot Arm AI")
+st.title("🤖 Vision-Based Robot Arm Predictor")
 
 st.write(
-    "AI-powered robotic manipulation using computer vision."
+    "Robotic manipulation using computer vision."
 )
 
 st.divider()
@@ -549,17 +450,7 @@ if st.button(
                 prediction - ground_truth
             )
 
-            mse = float(np.mean(error))
-
-            save_prediction(
-                image_name=image_name,
-                prediction=prediction,
-                ground_truth=ground_truth,
-                error=error,
-                mse=mse,
-                dataset_split=dataset_split,
-                dataset_index=dataset_index
-            )
+            mse = float(np.mean(error**2))
 
         st.session_state[
             "latest_prediction"
@@ -581,6 +472,10 @@ if st.button(
             "Prediction generated successfully!"
         )
 
+
+# =========================================================
+# PREDICTION RESULTS
+# =========================================================
 
 # =========================================================
 # PREDICTION RESULTS
@@ -611,6 +506,74 @@ if "latest_prediction" in st.session_state:
                 f"{prediction[i]:.5f}"
             )
 
+    if ground_truth is not None:
+
+        st.subheader(
+            "Predicted vs. Ground Truth"
+        )
+
+        error = np.abs(
+            prediction - ground_truth
+        )
+
+        mse = np.mean(
+            (prediction - ground_truth) ** 2
+        )
+
+        comparison_cols = st.columns(4)
+
+        with comparison_cols[0]:
+            st.metric(
+                "Mean Squared Error",
+                f"{mse:.6f}"
+            )
+
+        with comparison_cols[1]:
+            st.metric(
+                "Max Error",
+                f"{np.max(error):.6f}"
+            )
+
+        with comparison_cols[2]:
+            st.metric(
+                "Dataset",
+                st.session_state["latest_split"]
+            )
+
+        with comparison_cols[3]:
+            st.metric(
+                "Sample",
+                st.session_state["latest_index"]
+            )
+
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            st.markdown("### Predicted")
+
+            for i, value in enumerate(prediction):
+                st.write(
+                    f"**Action {i + 1}:** "
+                    f"{float(value):.4f}"
+                )
+
+        with col2:
+            st.markdown("### Ground Truth")
+
+            for i, value in enumerate(ground_truth):
+                st.write(
+                    f"**Action {i + 1}:** "
+                    f"{float(value):.4f}"
+                )
+
+        with col3:
+            st.markdown("### Absolute Error")
+
+            for i, value in enumerate(error):
+                st.write(
+                    f"**Action {i + 1}:** "
+                    f"{float(value):.4f}"
+                )
 
     # -----------------------------------------------------
     # Ground truth comparison
@@ -682,87 +645,3 @@ if "latest_prediction" in st.session_state:
 
 
 st.divider()
-
-
-# =========================================================
-# ROBOT SIMULATION
-# =========================================================
-
-st.header("4. Robot Simulation")
-
-st.info(
-    "MuJoCo robot simulation will be connected here."
-)
-
-
-st.divider()
-
-
-# =========================================================
-# HISTORY
-# =========================================================
-
-st.header("5. Prediction History")
-
-history = get_history()
-
-if history:
-
-    for record in history:
-
-        (
-            prediction_id,
-            timestamp,
-            image_name,
-            actions_json,
-            ground_truth_json,
-            split,
-            sample_index
-        ) = record
-
-        with st.expander(
-            f"Prediction #{prediction_id} - "
-            f"{timestamp}"
-        ):
-
-            st.write(
-                "Input:",
-                image_name
-            )
-
-            if split:
-
-                st.write(
-                    f"Dataset: {split}, "
-                    f"Sample: {sample_index}"
-                )
-
-            st.write(
-                "Prediction:"
-            )
-
-            st.json(
-                json.loads(actions_json)
-            )
-
-            if ground_truth_json:
-
-                st.write(
-                    "User Action:"
-                )
-
-                st.json(
-                    json.loads(ground_truth_json)
-                )
-
-else:
-
-    st.write(
-        "No predictions have been generated yet."
-    )
-
-
-st.caption(
-    "Deep Learning Project | "
-    "VGG16 Encoder + Custom Decoder"
-)
