@@ -253,6 +253,8 @@ def run_simulation(
     no_illustrative_props=False,
 ):
 
+    import pybullet as pb
+    import pybullet_data
     data = Path(data_dir)
 
     checkpoint = Path(checkpoint)
@@ -744,6 +746,7 @@ def run_simulation(
             "error_plot": error_plot,
             "report": report_path,
             "mean_error_cm": mean_bc_error*100,
+            "mean_bc_error": mean_bc_error
         }
 
     finally:
