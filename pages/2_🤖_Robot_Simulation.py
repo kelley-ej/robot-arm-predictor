@@ -3,6 +3,15 @@ import numpy as np
 from pathlib import Path
 import sys
 
+import importlib.util
+
+if importlib.util.find_spec("pybullet") is None:
+    st.error("PyBullet is NOT installed in this Streamlit environment.")
+    st.stop()
+
+st.success("PyBullet is installed!")
+
+from simulator.simulation import run_simulation
 # ---------------------------------------------------------
 # Project paths
 # ---------------------------------------------------------
@@ -93,7 +102,15 @@ run_button = st.button(
 # ---------------------------------------------------------
 # Run simulation
 # ---------------------------------------------------------
-
+if not PYBULLET_AVAILABLE:
+    st.warning(
+        "Robot simulation is unavailable on this deployment because "
+        "PyBullet is not installed in the cloud environment."
+    )
+    st.info(
+        "The robot prediction model is still fully available on the Single Prediction page."
+    )
+    st.stop()
 if run_button:
 
     with st.spinner(
