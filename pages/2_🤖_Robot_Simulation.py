@@ -1,34 +1,8 @@
 import streamlit as st
-import numpy as np
 from pathlib import Path
-import sys
-
-import importlib.util
-
-PYBULLET_AVAILABLE = importlib.util.find_spec("pybullet") is not None
-
-if not PYBULLET_AVAILABLE:
-    st.error("PyBullet is NOT installed in this environment.")
-    st.stop()
-
-st.success("PyBullet is installed!")
-
-from simulator.simulation import run_simulation
-# ---------------------------------------------------------
-# Project paths
-# ---------------------------------------------------------
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-SIM_DATA = PROJECT_ROOT / "demo_data" / "simulation"
-
-
-# ---------------------------------------------------------
-# Page configuration
-# ---------------------------------------------------------
+VIDEO_DIR = PROJECT_ROOT / "demo_data" / "simulation_videos"
 
 st.set_page_config(
     page_title="Robot Simulation",
@@ -39,172 +13,53 @@ st.set_page_config(
 st.title("🤖 Robot Arm Simulation")
 
 st.write(
-    "Select one of the recorded robot demonstrations and "
-    "run the trained model through the simulation."
+    "View the trained robot policy running through one of the "
+    "recorded robot demonstrations."
 )
 
 st.info(
-    "The simulation compares the model's predicted robot actions "
-    "against the recorded demonstration. The blue robot motion is "
-    "an approximate visualization of the predicted actions."
+    "These simulations were generated using the recorded camera images "
+    "and robot states from the selected demonstration. The blue robot "
+    "shows an approximate visualization of the model's predicted actions."
 )
 
+# Find available videos
+videos = sorted(VIDEO_DIR.glob("lift_panda_demo_*_one_step.mp4"))
 
-# ---------------------------------------------------------
-# Find available demos
-# ---------------------------------------------------------
-
-demo_ids_file = SIM_DATA / "demo_ids.npy"
-
-if not demo_ids_file.exists():
-    st.error(
-        "Simulation data was not found. "
-        "Make sure demo_data/simulation is included in the project."
-    )
+if not videos:
+    st.error("No simulation videos were found.")
     st.stop()
 
-demo_ids = np.load(demo_ids_file)
+# Convert filenames into demo numbers
+demo_numbers = []
 
-unique_demo_ids = np.unique(demo_ids)
+for video in videos:
+    try:
+        demo_number = int(video.stem.split("_")[3])
+        demo_numbers.append(demo_number)
+    except (IndexError, ValueError):
+        continue
 
+if not demo_numbers:
+    st.error("No valid simulation videos were found.")
+    st.stop()
 
-# ---------------------------------------------------------
-# Controls
-# ---------------------------------------------------------
-
-col1, col2 = st.columns(2)
-
-with col1:
-    selected_demo = st.selectbox(
-        "Select Demonstration",
-        unique_demo_ids,
-        format_func=lambda x: f"Demo {x}"
-    )
-
-with col2:
-    mode = st.selectbox(
-        "Simulation Mode",
-        ["one_step", "cumulative"],
-        format_func=lambda x: (
-            "One Step" if x == "one_step"
-            else "Cumulative"
-        )
-    )
-
-
-st.write("")
-
-run_button = st.button(
-    "▶ Run Simulation",
-    type="primary",
-    use_container_width=True
+selected_demo = st.selectbox(
+    "Select Demonstration",
+    demo_numbers,
+    format_func=lambda x: f"Demo {x + 1}"
 )
 
+selected_video = VIDEO_DIR / f"lift_panda_demo_{selected_demo}_one_step.mp4"
 
-# ---------------------------------------------------------
-# Run simulation
-# ---------------------------------------------------------
+st.subheader(f"Demo {selected_demo + 1}")
 
-if run_button:
+if selected_video.exists():
+    st.video(str(selected_video))
+else:
+    st.error("Simulation video could not be found.")
 
-    with st.spinner(
-        f"Running Demo {selected_demo} simulation..."
-    ):
-
-        try:
-
-            # Import here so the Streamlit page itself
-            # doesn't load the heavy model until needed.
-            from simulator.simulation import run_simulation
-
-            result = run_simulation(
-                demo_id=int(selected_demo),
-                mode=mode
-            )
-
-        except Exception as e:
-
-            st.error("Simulation failed.")
-
-            st.exception(e)
-
-            st.stop()
-
-    st.success("Simulation complete!")
-
-    # -----------------------------------------------------
-    # Metrics
-    # -----------------------------------------------------
-
-    st.subheader("Simulation Results")
-
-    metric_col1, metric_col2 = st.columns(2)
-
-    with metric_col1:
-        st.metric(
-            "Mean BC Error",
-            f'{result["mean_error_cm"]:.2f} cm'
-        )
-
-    with metric_col2:
-        st.metric(
-            "Demonstration",
-            f'Demo {selected_demo}'
-        )
-
-    # -----------------------------------------------------
-    # Video
-    # -----------------------------------------------------
-
-    st.subheader("Robot Simulation")
-
-    video_path = Path(result["video"])
-
-    if video_path.exists():
-
-        st.video(
-            str(video_path)
-        )
-
-    else:
-
-        st.warning(
-            "Simulation video was not found."
-        )
-
-    # -----------------------------------------------------
-    # Error plot
-    # -----------------------------------------------------
-
-    if result.get("error_plot"):
-
-        error_plot = Path(result["error_plot"])
-
-        if error_plot.exists():
-
-            st.subheader("Prediction Error")
-
-            st.image(
-                str(error_plot),
-                use_container_width=True
-            )
-
-    # -----------------------------------------------------
-    # Report
-    # -----------------------------------------------------
-
-    if result.get("report"):
-
-        report_path = Path(result["report"])
-
-        if report_path.exists():
-
-            with st.expander("Simulation Report"):
-
-                with open(report_path, "r") as f:
-                    report = f.read()
-
-                st.code(
-                    report,
-                    language="json"
-                )
+st.caption(
+    "Simulation mode: One Step — the predicted action is compared "
+    "against the recorded next robot state at each timestep."
+)
