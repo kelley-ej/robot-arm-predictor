@@ -542,8 +542,49 @@ if "latest_prediction" in st.session_state:
     # -----------------------------------------------------
     # Ground truth comparison
     # -----------------------------------------------------
+for i, col in enumerate(action_cols):
 
+    with col:
+
+        st.metric(
+            f"Action {i + 1}",
+            f"{prediction[i]:.5f}"
+        )
+
+if ground_truth is not None:
+
+    error = np.abs(prediction - ground_truth)
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.markdown("### Predicted")
+
+        for i, value in enumerate(prediction):
+            st.write(
+                f"**Action {i + 1}:** "
+                f"{float(value):.4f}"
+            )
+
+    with col2:
+        st.markdown("### User Actions")
+
+        for i, value in enumerate(ground_truth):
+            st.write(
+                f"**Action {i + 1}:** "
+                f"{float(value):.4f}"
+            )
+
+    with col3:
+        st.markdown("### Absolute Error")
+
+        for i, value in enumerate(error):
+            st.write(
+                f"**Action {i + 1}:** "
+                f"{float(value):.4f}"
+            )
     if ground_truth is not None:
+        error = np.abs(prediction - ground_truth)
 
         st.subheader(
             "Predicted vs. User Action"
