@@ -477,30 +477,21 @@ if st.button(
 # PREDICTION RESULTS
 # =========================================================
 
-# =========================================================
-# PREDICTION RESULTS
-# =========================================================
+# -----------------------------------------------------
+# Ground truth comparison
+# -----------------------------------------------------
 
 if "latest_prediction" in st.session_state:
 
-    prediction = (
-        st.session_state["latest_prediction"]
-    )
+    prediction = st.session_state["latest_prediction"]
+    ground_truth = st.session_state["latest_ground_truth"]
 
-    ground_truth = (
-        st.session_state["latest_ground_truth"]
-    )
-
-    st.subheader(
-        "Predicted Actuator Commands"
-    )
+    st.subheader("Predicted Actuator Commands")
 
     action_cols = st.columns(7)
 
     for i, col in enumerate(action_cols):
-
         with col:
-
             st.metric(
                 f"Action {i + 1}",
                 f"{prediction[i]:.5f}"
@@ -508,7 +499,13 @@ if "latest_prediction" in st.session_state:
 
     if ground_truth is not None:
 
-        
+        error = np.abs(prediction - ground_truth)
+        mse = np.mean((prediction - ground_truth) ** 2)
+
+        st.metric(
+            "Mean Squared Error (MSE)",
+            f"{mse:.6f}"
+        )
 
         col1, col2, col3 = st.columns(3)
 
@@ -538,84 +535,3 @@ if "latest_prediction" in st.session_state:
                     f"**Action {i + 1}:** "
                     f"{float(value):.4f}"
                 )
-
-    # -----------------------------------------------------
-    # Ground truth comparison
-    # -----------------------------------------------------
-
-if ground_truth is not None:
-
-    error = np.abs(prediction - ground_truth)
-
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        st.markdown("### Predicted")
-
-        for i, value in enumerate(prediction):
-            st.write(
-                f"**Action {i + 1}:** "
-                f"{float(value):.4f}"
-            )
-
-    with col2:
-        st.markdown("### User Actions")
-
-        for i, value in enumerate(ground_truth):
-            st.write(
-                f"**Action {i + 1}:** "
-                f"{float(value):.4f}"
-            )
-
-    with col3:
-        st.markdown("### Absolute Error")
-
-        for i, value in enumerate(error):
-            st.write(
-                f"**Action {i + 1}:** "
-                f"{float(value):.4f}"
-            )
-    if ground_truth is not None:
-        error = np.abs(prediction - ground_truth)
-
-        st.subheader(
-            "Predicted vs. User Action"
-        )
-
-        error = np.abs(
-            (prediction - ground_truth)
-        )
-
-        mse = np.mean(error**2)
-
-        comparison_cols = st.columns(4)
-
-        with comparison_cols[0]:
-
-            st.metric(
-                "Mean Squared Error",
-                f"{mse:.6f}"
-            )
-
-        with comparison_cols[1]:
-
-            st.metric(
-                "Max Error",
-                f"{np.max(error):.6f}"
-            )
-
-        with comparison_cols[2]:
-
-            st.metric(
-                "Dataset",
-                st.session_state["latest_split"]
-            )
-
-        with comparison_cols[3]:
-
-            st.metric(
-                "Sample",
-                st.session_state["latest_index"]
-            )
-
-st.divider()
