@@ -10,7 +10,7 @@ from model.predict import predict_robot_action
 # ---------------------------------------------------------
 
 st.set_page_config(
-    page_title="Robot Arm Predictor",
+    page_title="Robot Arm Behavioral Cloning",
     page_icon="🤖",
     layout="wide"
 )
@@ -115,10 +115,10 @@ def load_dataset(split):
 # Header
 # ---------------------------------------------------------
 
-st.title("🤖 Vision-Based Robot Arm Predictor")
+st.title("🤖 Robot Arm Behavioral Clonining")
 
 st.write(
-    "Robotic manipulation using computer vision."
+    "Cloning robot arm operators using computer vision."
 )
 
 st.divider()
@@ -508,43 +508,7 @@ if "latest_prediction" in st.session_state:
 
     if ground_truth is not None:
 
-        st.subheader(
-            "Predicted vs. Ground Truth"
-        )
-
-        error = np.abs(
-            prediction - ground_truth
-        )
-
-        mse = np.mean(
-            (prediction - ground_truth) ** 2
-        )
-
-        comparison_cols = st.columns(4)
-
-        with comparison_cols[0]:
-            st.metric(
-                "Mean Squared Error",
-                f"{mse:.6f}"
-            )
-
-        with comparison_cols[1]:
-            st.metric(
-                "Max Error",
-                f"{np.max(error):.6f}"
-            )
-
-        with comparison_cols[2]:
-            st.metric(
-                "Dataset",
-                st.session_state["latest_split"]
-            )
-
-        with comparison_cols[3]:
-            st.metric(
-                "Sample",
-                st.session_state["latest_index"]
-            )
+        
 
         col1, col2, col3 = st.columns(3)
 
@@ -558,7 +522,7 @@ if "latest_prediction" in st.session_state:
                 )
 
         with col2:
-            st.markdown("### Ground Truth")
+            st.markdown("### User Actions")
 
             for i, value in enumerate(ground_truth):
                 st.write(
@@ -620,28 +584,5 @@ if "latest_prediction" in st.session_state:
                 "Sample",
                 st.session_state["latest_index"]
             )
-
-
-        st.subheader("Prediction vs User Action")
-        
-        col1,col2,col3 = st.columns(3)
-
-        with col1:
-            st.markdown("### Predicted")
-            for i, value in enumerate(prediction):
-                st.write(f"**Action {i + 1}:** {float(value):.4f}")
-
-        with col2:
-            st.markdown("### User Action")
-            for i, value in enumerate(ground_truth):
-                st.write(f"{float(value):.4f}")
-
-        with col3:
-            st.markdown("### Absolute Error")
-            for i, value in enumerate(error):
-                st.write(f"{float(value):.4f}")
-
-        st.metric("Mean Squared Error", f"{mse:.4f}")
-
 
 st.divider()

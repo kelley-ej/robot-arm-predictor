@@ -5,8 +5,10 @@ import sys
 
 import importlib.util
 
-if importlib.util.find_spec("pybullet") is None:
-    st.error("PyBullet is NOT installed in this Streamlit environment.")
+PYBULLET_AVAILABLE = importlib.util.find_spec("pybullet") is not None
+
+if not PYBULLET_AVAILABLE:
+    st.error("PyBullet is NOT installed in this environment.")
     st.stop()
 
 st.success("PyBullet is installed!")
@@ -102,15 +104,7 @@ run_button = st.button(
 # ---------------------------------------------------------
 # Run simulation
 # ---------------------------------------------------------
-if not PYBULLET_AVAILABLE:
-    st.warning(
-        "Robot simulation is unavailable on this deployment because "
-        "PyBullet is not installed in the cloud environment."
-    )
-    st.info(
-        "The robot prediction model is still fully available on the Single Prediction page."
-    )
-    st.stop()
+
 if run_button:
 
     with st.spinner(
