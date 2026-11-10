@@ -542,14 +542,6 @@ if "latest_prediction" in st.session_state:
     # -----------------------------------------------------
     # Ground truth comparison
     # -----------------------------------------------------
-for i, col in enumerate(action_cols):
-
-    with col:
-
-        st.metric(
-            f"Action {i + 1}",
-            f"{prediction[i]:.5f}"
-        )
 
 if ground_truth is not None:
 
