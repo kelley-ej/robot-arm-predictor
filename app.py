@@ -523,7 +523,6 @@ if "latest_prediction" in st.session_state:
 
             for i, value in enumerate(ground_truth):
                 st.write(
-                    f"{i + 1}:** "
                     f"{float(value):.4f}"
                 )
 
@@ -532,6 +531,5 @@ if "latest_prediction" in st.session_state:
 
             for i, value in enumerate(error):
                 st.write(
-                    f"{i + 1}:** "
                     f"{float(value):.4f}"
                 )
