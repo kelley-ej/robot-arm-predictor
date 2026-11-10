@@ -2,6 +2,7 @@ streamlit==1.66.0
 numpy==2.3.2
 pillow==11.3.0
 scipy==1.16.2
+pybullet==3.2.7
 matplotlib==3.10.6
 imageio==2.37.0
 torch==2.9.1+cpu
