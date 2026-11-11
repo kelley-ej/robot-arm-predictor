@@ -13,24 +13,22 @@ st.set_page_config(
 st.title("🤖 Robot Arm Simulation")
 
 st.write(
-    "View the trained robot policy running through one of the "
-    "recorded robot demonstrations."
+    "View the trained robot policy running on recorded robot demonstrations."
 )
 
 st.info(
-    "These simulations were generated using the recorded camera images "
-    "and robot states from the selected demonstration. The blue robot "
-    "shows an approximate visualization of the model's predicted actions."
+    "The green robot shows the recorded demonstration, while the blue robot "
+    "shows the predicted behavior from the trained policy."
 )
 
-# Find available videos
-videos = sorted(VIDEO_DIR.glob("lift_panda_demo_*_one_step.mp4"))
+videos = sorted(
+    VIDEO_DIR.glob("lift_panda_demo_*_overlay_4x.mp4")
+)
 
 if not videos:
     st.error("No simulation videos were found.")
     st.stop()
 
-# Convert filenames into demo numbers
 demo_numbers = []
 
 for video in videos:
@@ -40,9 +38,7 @@ for video in videos:
     except (IndexError, ValueError):
         continue
 
-if not demo_numbers:
-    st.error("No valid simulation videos were found.")
-    st.stop()
+demo_numbers = sorted(demo_numbers)
 
 selected_demo = st.selectbox(
     "Select Demonstration",
@@ -50,7 +46,10 @@ selected_demo = st.selectbox(
     format_func=lambda x: f"Demo {x + 1}"
 )
 
-selected_video = VIDEO_DIR / f"lift_panda_demo_{selected_demo}_one_step.mp4"
+selected_video = (
+    VIDEO_DIR /
+    f"lift_panda_demo_{selected_demo}_overlay_4x.mp4"
+)
 
 st.subheader(f"Demo {selected_demo + 1}")
 
@@ -60,6 +59,6 @@ else:
     st.error("Simulation video could not be found.")
 
 st.caption(
-    "Simulation mode: One Step — the predicted action is compared "
-    "against the recorded next robot state at each timestep."
+    "Simulation mode: Overlay — the predicted robot action is visualized "
+    "against the recorded robot demonstration. Videos are shown at 4× speed."
 )
